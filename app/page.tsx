@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface FormData {
   apiKey: string;
-  model: 'gpt-4.1' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | 'claude-opus-4-1-20250805' | 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514' | 'claude-3-7-sonnet-latest';
+  model: 'gpt-4.1' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | 'claude-opus-4-1-20250805' | 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514' | 'claude-3-7-sonnet-latest' | 'deepseek-chat' | 'deepseek-reasoner';
   systemPrompt: string;
   userPrompt: string;
   temperature: number;
@@ -28,6 +28,19 @@ interface ClaudeResponse {
 
 type ApiResponse = OpenAIResponse | ClaudeResponse;
 
+interface StoredApiKey {
+  id: string;
+  key: string;
+  createdAt: number;
+}
+
+// Model provider structure for cascader
+const modelProviders = {
+  'OpenAI': ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano'],
+  'Anthropic': ['claude-opus-4-1-20250805', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514', 'claude-3-7-sonnet-latest'],
+  'Deepseek': ['deepseek-chat', 'deepseek-reasoner']
+} as const;
+
 const defaultValues: FormData = {
   apiKey: '',
   model: 'gpt-4.1',
@@ -42,35 +55,158 @@ const isClaudeModel = (model: string): boolean => {
   return model.startsWith('claude-');
 };
 
+// Helper functions for API key management
+const getStoredApiKeys = (): StoredApiKey[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem('llm-playground-api-keys');
+  return stored ? JSON.parse(stored) : [];
+};
+
+const saveStoredApiKeys = (keys: StoredApiKey[]): void => {
+  localStorage.setItem('llm-playground-api-keys', JSON.stringify(keys));
+};
+
+const addApiKey = (key: string): void => {
+  const existing = getStoredApiKeys();
+  // Check if key already exists
+  if (existing.some(stored => stored.key === key)) return;
+  
+  const newKey: StoredApiKey = {
+    id: Date.now().toString(),
+    key,
+    createdAt: Date.now()
+  };
+  
+  const updated = [newKey, ...existing];
+  saveStoredApiKeys(updated);
+};
+
+const deleteApiKey = (id: string): void => {
+  const existing = getStoredApiKeys();
+  const updated = existing.filter(key => key.id !== id);
+  saveStoredApiKeys(updated);
+};
+
 export default function Home() {
   const [formData, setFormData] = useState<FormData>(defaultValues);
   const [output, setOutput] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
+  const [storedApiKeys, setStoredApiKeys] = useState<StoredApiKey[]>([]);
+  const [showApiKeyDropdown, setShowApiKeyDropdown] = useState(false);
+  const [showModelCascader, setShowModelCascader] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const apiKeyInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const cascaderRef = useRef<HTMLDivElement>(null);
 
-  // Load API key from localStorage on component mount
+  // Load stored API keys and migrate old API key if exists (only on mount)
   useEffect(() => {
-    const savedApiKey = localStorage.getItem('llm-playground-api-key');
-    if (savedApiKey) {
-      setFormData(prev => ({ ...prev, apiKey: savedApiKey }));
+    const keys = getStoredApiKeys();
+    setStoredApiKeys(keys);
+    
+    // Migrate old single API key to new system
+    const oldApiKey = localStorage.getItem('llm-playground-api-key');
+    if (oldApiKey && !keys.some(k => k.key === oldApiKey)) {
+      addApiKey(oldApiKey);
+      const updatedKeys = getStoredApiKeys();
+      setStoredApiKeys(updatedKeys);
+      localStorage.removeItem('llm-playground-api-key');
+      // Set the migrated key as current if no key is set
+      if (!formData.apiKey) {
+        setFormData(prev => ({ ...prev, apiKey: oldApiKey }));
+      }
     }
+    // No longer auto-set first stored key - keep field empty by default
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Intentionally empty dependency array - we only want this to run once on mount
+
+  // Handle click outside dropdown and cascader
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          apiKeyInputRef.current && !apiKeyInputRef.current.contains(event.target as Node)) {
+        setShowApiKeyDropdown(false);
+      }
+      
+      if (cascaderRef.current && !cascaderRef.current.contains(event.target as Node)) {
+        setShowModelCascader(false);
+        setSelectedProvider(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Save API key to localStorage whenever it changes
-  useEffect(() => {
-    if (formData.apiKey) {
-      localStorage.setItem('llm-playground-api-key', formData.apiKey);
-    }
-  }, [formData.apiKey]);
 
   const handleInputChange = (field: keyof FormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Helper function to get provider for a model
+  const getProviderForModel = (model: string): string | null => {
+    for (const [provider, models] of Object.entries(modelProviders)) {
+      if ((models as readonly string[]).includes(model)) {
+        return provider;
+      }
+    }
+    return null;
+  };
+
+
+
+  // Handle model cascader interactions
+  const handleProviderSelect = (provider: string) => {
+    setSelectedProvider(provider);
+  };
+
+  const handleModelSelect = (model: string) => {
+    handleInputChange('model', model);
+    setShowModelCascader(false);
+    setSelectedProvider(null);
+  };
+
+  const handleApiKeySelect = (apiKey: StoredApiKey) => {
+    setFormData(prev => ({ ...prev, apiKey: apiKey.key }));
+    setShowApiKeyDropdown(false);
+  };
+
+  const handleDeleteApiKey = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    deleteApiKey(id);
+    const updatedKeys = getStoredApiKeys();
+    setStoredApiKeys(updatedKeys);
+    
+    // If we deleted the currently selected key, clear it
+    const currentKey = formData.apiKey;
+    if (!updatedKeys.some(key => key.key === currentKey)) {
+      setFormData(prev => ({ ...prev, apiKey: '' }));
+    }
+  };
+
+  const handleApiKeyInputFocus = () => {
+    const keys = getStoredApiKeys();
+    setStoredApiKeys(keys);
+    if (keys.length > 0) {
+      setShowApiKeyDropdown(true);
+    }
+  };
+
+  const handleApiKeyInputChange = (value: string) => {
+    handleInputChange('apiKey', value);
+    setShowApiKeyDropdown(false);
   };
 
   const handleSubmit = async () => {
     setIsLoading(true);
     setError('');
     setOutput('');
+
+    // Save API key to stored keys if it's not already stored
+    if (formData.apiKey.trim()) {
+      addApiKey(formData.apiKey.trim());
+      setStoredApiKeys(getStoredApiKeys());
+    }
 
     try {
       const response = await fetch('/api/chat', {
@@ -120,10 +256,12 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    const savedApiKey = localStorage.getItem('llm-playground-api-key') || '';
-    setFormData({ ...defaultValues, apiKey: savedApiKey });
+    setFormData({ ...defaultValues, apiKey: '' });
     setOutput('');
     setError('');
+    setShowApiKeyDropdown(false);
+    setShowModelCascader(false);
+    setSelectedProvider(null);
   };
 
   const isFormValid = () => {
@@ -144,62 +282,133 @@ export default function Home() {
 
             <div className="space-y-6 flex-1 overflow-y-auto pr-2">
               {/* API Key */}
-              <div>
+              <div className="relative">
                 <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
                   API Key *
                 </label>
-                <input
-                  id="apiKey"
-                  type="text"
-                  maxLength={200}
-                  value={formData.apiKey}
-                  onChange={(e) => handleInputChange('apiKey', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your API key (OpenAI or Anthropic)"
-                />
+                <div className="relative">
+                  <input
+                    ref={apiKeyInputRef}
+                    id="apiKey"
+                    name="apiKey"
+                    type="text"
+                    maxLength={200}
+                    value={formData.apiKey}
+                    onChange={(e) => handleApiKeyInputChange(e.target.value)}
+                    onFocus={handleApiKeyInputFocus}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-10"
+                    placeholder="Enter your API key (OpenAI, Anthropic, or Deepseek)"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck="false"
+                  />
+                  {storedApiKeys.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleApiKeyInputFocus}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                
+                {/* Dropdown for stored API keys */}
+                {showApiKeyDropdown && storedApiKeys.length > 0 && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                  >
+                    {storedApiKeys.map((apiKey) => (
+                      <div
+                        key={apiKey.id}
+                        className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer group"
+                        onClick={() => handleApiKeySelect(apiKey)}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-gray-900 truncate font-mono">{apiKey.key}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteApiKey(e, apiKey.id)}
+                          className="ml-2 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity focus:outline-none focus:opacity-100"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Model */}
-              <div>
+              {/* Model Cascader */}
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Model *</label>
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-xs font-medium text-gray-600 mb-2">OpenAI Models</div>
-                    <div className="flex flex-wrap gap-4">
-                      {(['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano'] as const).map((model) => (
-                        <label key={model} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="model"
-                            value={model}
-                            checked={formData.model === model}
-                            onChange={(e) => handleInputChange('model', e.target.value)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">{model}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-medium text-gray-600 mb-2">Claude Models</div>
-                    <div className="flex flex-wrap gap-4">
-                      {(['claude-opus-4-1-20250805', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514', 'claude-3-7-sonnet-latest'] as const).map((model) => (
-                        <label key={model} className="flex items-center">
-                          <input
-                            type="radio"
-                            name="model"
-                            value={model}
-                            checked={formData.model === model}
-                            onChange={(e) => handleInputChange('model', e.target.value)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">{model}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                <div
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer bg-white flex items-center justify-between"
+                  onClick={() => setShowModelCascader(!showModelCascader)}
+                >
+                  <span className="text-sm text-gray-700">
+                    {getProviderForModel(formData.model)} {'>'}  {formData.model}
+                  </span>
+                  <svg className={`w-5 h-5 text-gray-400 transition-transform ${showModelCascader ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
+
+                {/* Cascader Dropdown */}
+                {showModelCascader && (
+                  <div
+                    ref={cascaderRef}
+                    className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg"
+                  >
+                    <div className="flex">
+                      {/* Provider Column */}
+                      <div className="w-1/2 border-r border-gray-200">
+                        {Object.keys(modelProviders).map((provider) => (
+                          <div
+                            key={provider}
+                            className={`px-3 py-2 cursor-pointer hover:bg-gray-50 flex items-center justify-between ${
+                              selectedProvider === provider ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                            }`}
+                            onClick={() => handleProviderSelect(provider)}
+                          >
+                            <span className="text-sm font-medium">{provider}</span>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Model Column */}
+                      <div className="w-1/2 max-h-60 overflow-y-auto">
+                        {selectedProvider ? (
+                          modelProviders[selectedProvider as keyof typeof modelProviders].map((model) => (
+                            <div
+                              key={model}
+                              className={`px-3 py-2 cursor-pointer hover:bg-gray-50 ${
+                                formData.model === model ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                              }`}
+                              onClick={() => handleModelSelect(model)}
+                            >
+                              <span className="text-sm">{model}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-sm text-gray-500 italic">
+                            Select a provider
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* System Prompt */}
@@ -213,7 +422,8 @@ export default function Home() {
                   rows={4}
                   value={formData.systemPrompt}
                   onChange={(e) => handleInputChange('systemPrompt', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
+                  style={{ height: '96px' }}
                   placeholder="Enter system prompt..."
                 />
                 <div className="text-xs text-gray-500 mt-1">
@@ -232,7 +442,8 @@ export default function Home() {
                   rows={4}
                   value={formData.userPrompt}
                   onChange={(e) => handleInputChange('userPrompt', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
+                  style={{ height: '96px' }}
                   placeholder="Enter user prompt..."
                 />
                 <div className="text-xs text-gray-500 mt-1">

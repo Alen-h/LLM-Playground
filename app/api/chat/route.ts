@@ -18,6 +18,10 @@ const isClaudeModel = (model: string): boolean => {
     return model.startsWith('claude-');
 };
 
+const isDeepseekModel = (model: string): boolean => {
+    return model.startsWith('deepseek-');
+};
+
 export async function POST(request: NextRequest) {
     try {
         const body: ChatRequest = await request.json();
@@ -50,6 +54,25 @@ export async function POST(request: NextRequest) {
                     'anthropic-version': '2023-06-01',
                 },
                 body: JSON.stringify(claudeRequestBody),
+            });
+        } else if (isDeepseekModel(body.model)) {
+            // Handle Deepseek API call
+            const deepseekRequestBody = {
+                model: body.model,
+                messages: body.messages,
+                temperature: body.temperature,
+                max_tokens: body.max_completion_tokens,
+                ...(body.response_format && { response_format: body.response_format }),
+            };
+
+            response = await fetch('https://api.deepseek.com/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${body.apiKey}`,
+                },
+                body: JSON.stringify(deepseekRequestBody),
             });
         } else {
             // Handle OpenAI API call

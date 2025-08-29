@@ -151,7 +151,7 @@ export default function Home() {
                 <input
                   id="apiKey"
                   type="text"
-                  maxLength={100}
+                  maxLength={200}
                   value={formData.apiKey}
                   onChange={(e) => handleInputChange('apiKey', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

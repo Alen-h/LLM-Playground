@@ -4,20 +4,29 @@ import { useState, useEffect } from 'react';
 
 interface FormData {
   apiKey: string;
-  model: 'gpt-4.1' | 'gpt-4.1-mini' | 'gpt-4.1-nano';
+  model: 'gpt-4.1' | 'gpt-4.1-mini' | 'gpt-4.1-nano' | 'claude-opus-4-1-20250805' | 'claude-opus-4-20250514' | 'claude-sonnet-4-20250514' | 'claude-3-7-sonnet-latest';
   systemPrompt: string;
   userPrompt: string;
   temperature: number;
   responseFormat: 'text' | 'json_object';
+  maxTokens: number;
 }
 
-interface ApiResponse {
+interface OpenAIResponse {
   choices: {
     message: {
       content: string;
     };
   }[];
 }
+
+interface ClaudeResponse {
+  content: {
+    text: string;
+  }[];
+}
+
+type ApiResponse = OpenAIResponse | ClaudeResponse;
 
 const defaultValues: FormData = {
   apiKey: '',
@@ -26,6 +35,11 @@ const defaultValues: FormData = {
   userPrompt: 'Hello!',
   temperature: 1,
   responseFormat: 'text',
+  maxTokens: 2048,
+};
+
+const isClaudeModel = (model: string): boolean => {
+  return model.startsWith('claude-');
 };
 
 export default function Home() {
@@ -64,22 +78,23 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          apiKey: formData.apiKey,
-          model: formData.model,
-          messages: [
-            {
-              role: 'system',
-              content: formData.systemPrompt,
-            },
-            {
-              role: 'user',
-              content: formData.userPrompt,
-            },
-          ],
-          response_format: { type: formData.responseFormat },
-          temperature: formData.temperature,
-        }),
+                  body: JSON.stringify({
+            apiKey: formData.apiKey,
+            model: formData.model,
+            messages: [
+              {
+                role: 'system',
+                content: formData.systemPrompt,
+              },
+              {
+                role: 'user',
+                content: formData.userPrompt,
+              },
+            ],
+            ...(isClaudeModel(formData.model) ? {} : { response_format: { type: formData.responseFormat } }),
+            temperature: formData.temperature,
+            max_completion_tokens: formData.maxTokens,
+          }),
       });
 
       if (!response.ok) {
@@ -88,7 +103,15 @@ export default function Home() {
       }
 
       const data: ApiResponse = await response.json();
-      setOutput(data.choices[0].message.content);
+      
+      // Handle different response formats
+      if ('choices' in data) {
+        // OpenAI response
+        setOutput(data.choices[0].message.content);
+      } else {
+        // Claude response
+        setOutput(data.content[0].text);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
@@ -132,27 +155,50 @@ export default function Home() {
                   value={formData.apiKey}
                   onChange={(e) => handleInputChange('apiKey', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter your OpenAI API key"
+                  placeholder="Enter your API key (OpenAI or Anthropic)"
                 />
               </div>
 
               {/* Model */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Model *</label>
-                <div className="flex flex-wrap gap-4">
-                  {(['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano'] as const).map((model) => (
-                    <label key={model} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="model"
-                        value={model}
-                        checked={formData.model === model}
-                        onChange={(e) => handleInputChange('model', e.target.value)}
-                        className="mr-2 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{model}</span>
-                    </label>
-                  ))}
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-2">OpenAI Models</div>
+                    <div className="flex flex-wrap gap-4">
+                      {(['gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano'] as const).map((model) => (
+                        <label key={model} className="flex items-center">
+                          <input
+                            type="radio"
+                            name="model"
+                            value={model}
+                            checked={formData.model === model}
+                            onChange={(e) => handleInputChange('model', e.target.value)}
+                            className="mr-2 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{model}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium text-gray-600 mb-2">Claude Models</div>
+                    <div className="flex flex-wrap gap-4">
+                      {(['claude-opus-4-1-20250805', 'claude-opus-4-20250514', 'claude-sonnet-4-20250514', 'claude-3-7-sonnet-latest'] as const).map((model) => (
+                        <label key={model} className="flex items-center">
+                          <input
+                            type="radio"
+                            name="model"
+                            value={model}
+                            checked={formData.model === model}
+                            onChange={(e) => handleInputChange('model', e.target.value)}
+                            className="mr-2 text-blue-600 focus:ring-blue-500"
+                          />
+                          <span className="text-sm text-gray-700">{model}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -213,20 +259,16 @@ export default function Home() {
                   />
                   <span className="text-sm text-gray-500">2</span>
                 </div>
-                <input
-                  type="number"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  value={formData.temperature}
-                  onChange={(e) => handleInputChange('temperature', parseFloat(e.target.value) || 0)}
-                  className="mt-2 w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
               </div>
 
               {/* Response Format */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Response Format *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Response Format * 
+                  {isClaudeModel(formData.model) && (
+                    <span className="text-xs text-gray-500 ml-2">(Not supported for Claude models)</span>
+                  )}
+                </label>
                 <div className="flex flex-wrap gap-4">
                   {(['text', 'json_object'] as const).map((format) => (
                     <label key={format} className="flex items-center">
@@ -236,11 +278,35 @@ export default function Home() {
                         value={format}
                         checked={formData.responseFormat === format}
                         onChange={(e) => handleInputChange('responseFormat', e.target.value)}
-                        className="mr-2 text-blue-600 focus:ring-blue-500"
+                        disabled={isClaudeModel(formData.model)}
+                        className="mr-2 text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
-                      <span className="text-sm text-gray-700">{format}</span>
+                      <span className={`text-sm ${isClaudeModel(formData.model) ? 'text-gray-400' : 'text-gray-700'}`}>
+                        {format}
+                      </span>
                     </label>
                   ))}
+                </div>
+              </div>
+
+              {/* Max Tokens */}
+              <div>
+                <label htmlFor="maxTokens" className="block text-sm font-medium text-gray-700 mb-2">
+                  Max Tokens * ({formData.maxTokens})
+                </label>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-500">1</span>
+                  <input
+                    id="maxTokens"
+                    type="range"
+                    min="1"
+                    max="4096"
+                    step="1"
+                    value={formData.maxTokens}
+                    onChange={(e) => handleInputChange('maxTokens', parseInt(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                  />
+                  <span className="text-sm text-gray-500">4096</span>
                 </div>
               </div>
 

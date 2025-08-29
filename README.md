@@ -1,6 +1,6 @@
 # LLM Playground
 
-A modern, web-based playground for interacting with Large Language Models (LLMs) from multiple providers. Built with Next.js 15, TypeScript, and Tailwind CSS v4.
+A modern, web-based playground for interacting with Large Language Models (LLMs) from multiple providers. Built with Next.js 15, React 19, TypeScript, and Tailwind CSS v4.
 
 ## Features
 
@@ -12,6 +12,8 @@ A modern, web-based playground for interacting with Large Language Models (LLMs)
 - 🔄 **Real-time Feedback**: Loading states and error handling for better UX
 - 📊 **Flexible Output**: Support for both text and JSON response formats
 - 🎯 **Parameter Control**: Adjust temperature, max tokens, and system prompts
+- 🏗️ **Modern Architecture**: Built with Strategy Pattern for extensible provider support
+- 🔒 **Secure API Handling**: Server-side API calls to protect your API keys
 
 ## Supported Models
 
@@ -55,7 +57,7 @@ The playground features a split-screen interface:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/llm-playground.git
+git clone https://github.com/YOUR_USERNAME/llm-playground.git
 cd llm-playground
 ```
 
@@ -97,30 +99,50 @@ llm-playground/
 ├── app/
 │   ├── api/
 │   │   └── chat/
-│   │       └── route.ts          # Multi-provider API integration
+│   │       └── route.ts          # Multi-provider API with Strategy Pattern
 │   ├── globals.css               # Global styles with Tailwind v4
-│   ├── layout.tsx               # Root layout
-│   └── page.tsx                 # Main playground interface
-├── public/                      # Static assets
+│   ├── layout.tsx               # Root layout component
+│   ├── page.tsx                 # Main playground interface
+│   └── favicon.ico              # App favicon
+├── public/                      # Static assets (SVG icons)
+├── node_modules/                # Dependencies
 ├── package.json                 # Dependencies and scripts
+├── package-lock.json           # Dependency lock file
 ├── tsconfig.json               # TypeScript configuration
 ├── next.config.ts              # Next.js configuration
+├── next-env.d.ts               # Next.js TypeScript definitions
 ├── postcss.config.mjs          # PostCSS configuration
 ├── eslint.config.mjs           # ESLint configuration
-└── vercel.json                 # Vercel deployment configuration
+├── vercel.json                 # Vercel deployment configuration
+├── LICENSE                     # MIT License
+└── README.md                   # Project documentation
 ```
 
 ## Tech Stack
 
-- **Framework**: [Next.js 15](https://nextjs.org/) with App Router
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Framework**: [Next.js 15.5.2](https://nextjs.org/) with App Router
+- **React**: [React 19.1.0](https://react.dev/) with modern features
+- **Language**: [TypeScript 5](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with PostCSS
-- **Build Tool**: [Turbopack](https://turbo.build/pack)
-- **Linting**: [ESLint](https://eslint.org/) with Next.js configuration
+- **Build Tool**: [Turbopack](https://turbo.build/pack) (via Next.js dev)
+- **Linting**: [ESLint 9](https://eslint.org/) with Next.js configuration
+- **Architecture**: Strategy Pattern for extensible LLM provider support
 - **APIs**:
   - [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
   - [Anthropic Messages API](https://docs.anthropic.com/en/api/messages)
   - [Deepseek Chat API](https://platform.deepseek.com/api-docs)
+
+## Architecture
+
+This project uses the **Strategy Pattern** to handle multiple LLM providers:
+
+- **LLMProvider**: Abstract base class defining the provider interface
+- **ClaudeProvider**: Handles Anthropic Claude models
+- **DeepseekProvider**: Handles Deepseek models  
+- **OpenAIProvider**: Handles OpenAI models (also serves as fallback)
+- **LLMProviderFactory**: Factory class that selects the appropriate provider
+
+This design makes it easy to add new LLM providers without modifying existing code.
 
 ## Configuration
 
@@ -146,7 +168,7 @@ llm-playground/
 
 ### Available Scripts
 
-- `npm run dev` - Start development server with Turbopack
+- `npm run dev` - Start development server with Next.js and Turbopack
 - `npm run build` - Build the application for production
 - `npm start` - Start the production server
 - `npm run lint` - Run ESLint for code linting
@@ -189,7 +211,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/yourusername/llm-playground/issues) page
+1. Check the [Issues](https://github.com/YOUR_USERNAME/llm-playground/issues) page
 2. Create a new issue if your problem isn't already reported
 3. Provide detailed information about your environment and the issue
 

@@ -138,7 +138,7 @@ This project uses the **Strategy Pattern** to handle multiple LLM providers:
 
 - **LLMProvider**: Abstract base class defining the provider interface
 - **ClaudeProvider**: Handles Anthropic Claude models
-- **DeepseekProvider**: Handles Deepseek models  
+- **DeepseekProvider**: Handles Deepseek models
 - **OpenAIProvider**: Handles OpenAI models (also serves as fallback)
 - **LLMProviderFactory**: Factory class that selects the appropriate provider
 

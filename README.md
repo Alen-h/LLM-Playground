@@ -5,15 +5,18 @@ A modern, web-based playground for interacting with Large Language Models (LLMs)
 ## Features
 
 - 🤖 **Multi-Provider Support**: Choose from OpenAI, Anthropic (Claude), and Deepseek models
-- 🎛️ **Advanced Model Selection**: Cascading dropdown for easy provider and model selection
-- 💾 **API Key Management**: Store and manage multiple API keys with secure local storage
-- 🎨 **Modern UI**: Clean, responsive interface with real-time character counting
+- 🎛️ **Advanced Model Selection**: Intuitive cascading dropdown for easy provider and model selection
+- 💾 **Smart API Key Management**: Store and manage multiple API keys with secure local storage and easy dropdown selection
+- 🎨 **Modern UI**: Clean, responsive split-screen interface with real-time character counting
 - ⚡ **Fast Performance**: Built with Next.js 15 and Turbopack for lightning-fast development
-- 🔄 **Real-time Feedback**: Loading states and error handling for better UX
-- 📊 **Flexible Output**: Support for both text and JSON response formats
-- 🎯 **Parameter Control**: Adjust temperature, max tokens, and system prompts
+- 🔄 **Real-time Feedback**: Loading states, error handling, and visual feedback for better UX
+- 📊 **Flexible Output**: Support for both text and JSON response formats (OpenAI/Deepseek only)
+- 🎯 **Parameter Control**: Fine-tune temperature (0-2), max tokens (1-4096), and system prompts
 - 🏗️ **Modern Architecture**: Built with Strategy Pattern for extensible provider support
-- 🔒 **Secure API Handling**: Server-side API calls to protect your API keys
+- 🔒 **Secure API Handling**: Server-side API calls to protect your API keys from client exposure
+- 🗑️ **Key Management**: Easy deletion of stored API keys with visual confirmation
+- 📱 **Responsive Design**: Works seamlessly on desktop and mobile devices
+- 🎨 **Interactive Tooltips**: Helpful security information and guidance throughout the interface
 
 ## Supported Models
 
@@ -35,14 +38,43 @@ A modern, web-based playground for interacting with Large Language Models (LLMs)
 - `deepseek-chat` - General purpose chat model
 - `deepseek-reasoner` - Specialized reasoning model
 
-## Screenshots
+## Interface Overview
 
-The playground features a split-screen interface:
+The playground features an intuitive split-screen interface designed for optimal user experience:
 
-- **Left Panel**: Input form with API key management, model selection, prompts, and parameters
-- **Right Panel**: Real-time output display with formatted responses
+- **Left Panel**: Comprehensive input form with:
+  - Smart API key management with dropdown selection and secure storage
+  - Cascading model selection (Provider → Model)
+  - System and user prompt editors with character counters
+  - Temperature and max tokens sliders with real-time values
+  - Response format selection (text/JSON)
+  
+- **Right Panel**: Real-time output display with:
+  - Formatted response rendering
+  - Loading indicators during API calls
+  - Clear error messages with detailed information
+  - Empty state guidance for new users
+
+## Recent Updates
+
+- ✨ **Enhanced API Key Management**: Multiple API key storage with dropdown selection
+- 🎛️ **Improved Model Selection**: Cascading dropdown interface for better UX
+- 🔒 **Security Tooltips**: Interactive tooltips explaining data security practices
+- 📱 **Better Responsiveness**: Improved mobile and tablet experience
+- 🎨 **Visual Polish**: Enhanced loading states and error handling
+- 🧹 **Code Quality**: Better TypeScript types and component organization
 
 ## Getting Started
+
+### Quick Start
+
+Want to try it right now? The easiest way:
+
+1. **Visit the Live Demo**: [https://llm-playground-alen-h.vercel.app](https://llm-playground-alen-h.vercel.app) (if deployed)
+2. **Get an API Key**: Grab a free API key from [OpenAI](https://platform.openai.com/api-keys), [Anthropic](https://console.anthropic.com/), or [Deepseek](https://platform.deepseek.com/)
+3. **Start Playing**: Enter your API key, select a model, and start chatting!
+
+### Local Development
 
 ### Prerequisites
 
@@ -57,8 +89,8 @@ The playground features a split-screen interface:
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/llm-playground.git
-cd llm-playground
+git clone https://github.com/Alen-h/LLM-Playground.git
+cd LLM-Playground
 ```
 
 2. Install dependencies:
@@ -85,17 +117,37 @@ pnpm dev
 
 ### Usage
 
-1. **Add Your API Keys**: Enter API keys for your preferred providers (they will be saved locally)
-2. **Select Provider & Model**: Use the cascading dropdown to choose your provider and model
-3. **Set System Prompt**: Define the AI's behavior and context
-4. **Enter User Prompt**: Type your query or request
-5. **Adjust Parameters**: Control temperature, max tokens, and response format
-6. **Submit**: Click the submit button to get your response
+1. **Manage API Keys**: 
+   - Enter your API key in the input field (supports OpenAI, Anthropic, or Deepseek)
+   - Keys are automatically saved to local storage for future use
+   - Use the dropdown to quickly select from previously saved keys
+   - Delete unwanted keys with the trash icon
+
+2. **Select Your Model**: 
+   - Click the model selector to open the cascading dropdown
+   - First select your provider (OpenAI, Anthropic, or Deepseek)
+   - Then choose your specific model from the available options
+
+3. **Configure Your Prompts**:
+   - **System Prompt**: Define the AI's behavior, role, and context (up to 1000 characters)
+   - **User Prompt**: Enter your question or request (up to 1000 characters)
+   - Both fields include real-time character counters
+
+4. **Fine-tune Parameters**:
+   - **Temperature**: Control randomness (0 = focused, 2 = creative)
+   - **Max Tokens**: Set response length limit (1-4096 tokens)
+   - **Response Format**: Choose text or JSON output (OpenAI/Deepseek only)
+
+5. **Submit & Review**:
+   - Click Submit when all required fields are filled
+   - View real-time loading indicators
+   - Review formatted responses in the output panel
+   - Handle any errors with clear, descriptive messages
 
 ## Project Structure
 
 ```
-llm-playground/
+LLM-Playground/
 ├── app/
 │   ├── api/
 │   │   └── chat/
@@ -120,13 +172,15 @@ llm-playground/
 
 ## Tech Stack
 
-- **Framework**: [Next.js 15.5.2](https://nextjs.org/) with App Router
-- **React**: [React 19.1.0](https://react.dev/) with modern features
-- **Language**: [TypeScript 5](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with PostCSS
-- **Build Tool**: [Turbopack](https://turbo.build/pack) (via Next.js dev)
-- **Linting**: [ESLint 9](https://eslint.org/) with Next.js configuration
+- **Framework**: [Next.js 15.5.2](https://nextjs.org/) with App Router and React Server Components
+- **React**: [React 19.1.0](https://react.dev/) with modern hooks and features
+- **Language**: [TypeScript 5](https://www.typescriptlang.org/) for type safety and better DX
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) with PostCSS for modern CSS
+- **Build Tool**: [Turbopack](https://turbo.build/pack) for ultra-fast development builds
+- **Linting**: [ESLint 9](https://eslint.org/) with Next.js configuration for code quality
+- **Analytics**: [Vercel Analytics](https://vercel.com/analytics) for performance monitoring
 - **Architecture**: Strategy Pattern for extensible LLM provider support
+- **Storage**: Browser localStorage for secure client-side API key management
 - **APIs**:
   - [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat)
   - [Anthropic Messages API](https://docs.anthropic.com/en/api/messages)
@@ -211,7 +265,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you encounter any issues or have questions:
 
-1. Check the [Issues](https://github.com/YOUR_USERNAME/llm-playground/issues) page
+1. Check the [Issues](https://github.com/Alen-h/LLM-Playground/issues) page
 2. Create a new issue if your problem isn't already reported
 3. Provide detailed information about your environment and the issue
 

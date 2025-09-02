@@ -96,9 +96,13 @@ export default function Home() {
   const [showApiKeyDropdown, setShowApiKeyDropdown] = useState(false);
   const [showModelCascader, setShowModelCascader] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const apiKeyInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const cascaderRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const tooltipButtonRef = useRef<HTMLButtonElement>(null);
 
   // Load stored API keys and migrate old API key if exists (only on mount)
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function Home() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   // Intentionally empty dependency array - we only want this to run once on mount
 
-  // Handle click outside dropdown and cascader
+  // Handle click outside dropdown, cascader, and tooltip
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
@@ -133,6 +137,8 @@ export default function Home() {
         setShowModelCascader(false);
         setSelectedProvider(null);
       }
+
+      // Tooltip is now hover-only, so no need to handle click outside
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -195,6 +201,21 @@ export default function Home() {
   const handleApiKeyInputChange = (value: string) => {
     handleInputChange('apiKey', value);
     setShowApiKeyDropdown(false);
+  };
+
+  const handleTooltipShow = () => {
+    if (tooltipButtonRef.current) {
+      const rect = tooltipButtonRef.current.getBoundingClientRect();
+      setTooltipPosition({
+        top: rect.top - 10, // Position above the text
+        left: rect.left + rect.width + 8, // Position to the right of the text
+      });
+    }
+    setShowTooltip(true);
+  };
+
+  const handleTooltipHide = () => {
+    setShowTooltip(false);
   };
 
   const handleSubmit = async () => {
@@ -283,9 +304,19 @@ export default function Home() {
             <div className="space-y-6 flex-1 overflow-y-auto pr-2">
               {/* API Key */}
               <div className="relative">
-                <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
-                  API Key *
-                </label>
+                <div className="flex items-center mb-2">
+                  <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700">
+                    API Key *
+                  </label>
+                  <span
+                    ref={tooltipButtonRef}
+                    onMouseEnter={handleTooltipShow}
+                    onMouseLeave={handleTooltipHide}
+                    className="ml-2 text-xs text-green-600 cursor-help"
+                  >
+                    🔒 Your API key is secure!
+                  </span>
+                </div>
                 <div className="relative">
                   <input
                     ref={apiKeyInputRef}
@@ -610,6 +641,33 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Tooltip Portal - renders outside main content to avoid z-index issues */}
+      {showTooltip && (
+        <div
+          ref={tooltipRef}
+          className="fixed z-50 w-64 p-3 bg-gray-900 text-white text-xs rounded-md shadow-xl"
+          style={{
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`,
+          }}
+        >
+          <div className="relative">
+            <p className="font-medium">🔒 Your API key is secure!</p>
+            <p className="mt-2">
+              We do not store your API key on our servers or database. 
+              It is only saved locally in your browser&apos;s storage and never transmitted to us.
+            </p>
+            <p className="mt-2 text-gray-300">
+              This ensures your API key remains private and under your control.
+            </p>
+            {/* Tooltip arrow pointing left */}
+            <div className="absolute top-3 -left-1">
+              <div className="w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-gray-900"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

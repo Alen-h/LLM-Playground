@@ -17,6 +17,7 @@ A modern, web-based playground for interacting with Large Language Models (LLMs)
 - 🗑️ **Key Management**: Easy deletion of stored API keys with visual confirmation
 - 📱 **Responsive Design**: Works seamlessly on desktop and mobile devices
 - 🎨 **Interactive Tooltips**: Helpful security information and guidance throughout the interface
+- 🔓 **Open Source**: Fully open-source project with prominent GitHub access for transparency and contributions
 
 ## Supported Models
 
@@ -63,6 +64,7 @@ The playground features an intuitive split-screen interface designed for optimal
 - 📱 **Better Responsiveness**: Improved mobile and tablet experience
 - 🎨 **Visual Polish**: Enhanced loading states and error handling
 - 🧹 **Code Quality**: Better TypeScript types and component organization
+- 🔗 **GitHub Integration**: Added prominent GitHub repository button with classic black/white styling
 
 ## Getting Started
 

@@ -129,7 +129,7 @@ pnpm dev
    - Then choose your specific model from the available options
 
 3. **Configure Your Prompts**:
-   - **System Prompt**: Define the AI's behavior, role, and context (up to 1000 characters)
+   - **System Prompt**: Define the AI's behavior, role, and context (up to 10000 characters)
    - **User Prompt**: Enter your question or request (up to 1000 characters)
    - Both fields include real-time character counters
 

@@ -449,12 +449,12 @@ export default function Home() {
                 </label>
                 <textarea
                   id="systemPrompt"
-                  maxLength={1000}
+                  maxLength={10000}
                   rows={4}
                   value={formData.systemPrompt}
                   onChange={(e) => handleInputChange('systemPrompt', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-y-auto"
-                  style={{ height: '96px' }}
+                  style={{ height: '200px' }}
                   placeholder="Enter system prompt..."
                 />
                 <div className="text-xs text-gray-500 mt-1">
